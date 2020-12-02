@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: 0BSD
+
+= Advent of Code
+:aoc-website: https://adventofcode.com
+
+This repository contains my solutions to the annual {aoc-website}[Advent of Code] puzzles.
+
+Each puzzle is located in a file named in the format `[year]/[day].zig`.
+Each puzzle's input is expected to be in the corresponding file `[year]/[day].txt`.
+
+Use `./paste <day> [year]` to create `[year]/[day].zig` and paste your clipboard into `[year]/[day].txt`.
+If `./paste` is symlinked to `./edit`, it will also open your editor to the respective file.
+
+== License
+
+This repository is licensed under the link:LICENSE[BSD 0-Clause License].
+Third-party contributions shall be licensed the same unless explicitly stated otherwise.
