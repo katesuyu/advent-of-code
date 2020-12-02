@@ -114,7 +114,6 @@ pub fn build(b: *Builder) !void {
             \\const ctregex = @import("ctregex");
             \\const Utils = @import("util").Utils;
             \\
-            \\// A Zig package for a specific puzzle solution.
             \\const Puzzle = struct {
             \\    id: []const u8,
             \\    pkg: type,
@@ -129,7 +128,6 @@ pub fn build(b: *Builder) !void {
         // Otherwise, we run the latest puzzle solution from the most recent year.
         if (filter) |filter_| {
             try writer.print(
-                \\// Compute a list of puzzles to execute based on a filter.
                 \\const puzzles = comptime blk: {{
                 \\    @setEvalBranchQuota(5000 * {1});
                 \\    const filter = "{0Z}";
@@ -191,7 +189,9 @@ pub fn build(b: *Builder) !void {
             \\pub fn main() u8 {
             \\    var status: u8 = 0;
             \\    const stdout = std.io.getStdOut().writer();
-            \\    inline for (puzzles) |puzzle| {
+            \\    var timer = std.time.Timer.start() catch return 1;
+            \\
+            \\    inline for (puzzles) |puzzle, i| {
             \\        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             \\        defer _ = gpa.deinit();
             \\
@@ -203,6 +203,9 @@ pub fn build(b: *Builder) !void {
             \\            .gpa = &gpa.allocator,
             \\            .out = stdout,
             \\        };
+            \\
+            \\        if (i > 0) std.debug.print("\n", .{});
+            \\        timer.reset();
             \\
             \\        const puzzle_main = puzzle.pkg.main;
             \\        switch (@typeInfo(@typeInfo(@TypeOf(puzzle_main)).Fn.return_type.?)) {
@@ -219,6 +222,33 @@ pub fn build(b: *Builder) !void {
             \\            },
             \\            else => comptime unreachable,
             \\        }
+            \\
+            \\        var elapsed = timer.read();
+            \\        var fraction: ?u64 = null;
+            \\        var unit: []const u8 = "ns";
+            \\        if (elapsed > 1000) {
+            \\            fraction = elapsed % 1000;
+            \\            elapsed /= 1000;
+            \\            unit = "μs";
+            \\        }
+            \\        if (elapsed > 1000) {
+            \\            fraction = elapsed % 1000;
+            \\            elapsed /= 1000;
+            \\            unit = "ms";
+            \\        }
+            \\        if (elapsed > 1000) {
+            \\            fraction = elapsed % 1000;
+            \\            elapsed /= 1000;
+            \\            unit = "s";
+            \\        }
+            \\        std.debug.print("info: December {}, {} ({}", .{
+            \\            puzzle.day,
+            \\            puzzle.year,
+            \\            elapsed,
+            \\        });
+            \\        if (fraction) |f|
+            \\            std.debug.print(".{}", .{f});
+            \\        std.debug.print("{})\n", .{unit});
             \\    }
             \\    return status;
             \\}
