@@ -26,5 +26,8 @@ pub fn main(n: util.Utils) !void {
     const r7d1 = count(7, 1);
     const r1d2 = count(1, 2);
 
-    try n.out.print("{}\n{}\n", .{r3d1, r1d1 * r3d1 * r5d1 * r7d1 * r1d2});
+    try n.out.print("{}\n{}\n", .{
+        r3d1,
+        r1d1 * r3d1 * r5d1 * r7d1 * r1d2,
+    });
 }

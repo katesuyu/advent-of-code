@@ -195,7 +195,7 @@ pub fn build(b: *Builder) !void {
             \\        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             \\        defer _ = gpa.deinit();
             \\
-            \\        var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+            \\        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             \\        defer arena.deinit();
             \\
             \\        const utils = Utils{
@@ -264,9 +264,6 @@ pub fn build(b: *Builder) !void {
     for (puzzles.entries.items) |entry|
         for (entry.value) |value|
             exe.addPackage(value.pkg);
-    exe.enable_wasmtime = true;
-    exe.enable_qemu = true;
-    exe.enable_wine = true;
     exe.setBuildMode(mode);
     exe.setTarget(target);
     exe.install();

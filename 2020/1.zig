@@ -9,20 +9,20 @@ pub fn main(n: util.Utils) !void {
         const entry = try expenses.addOne(n.arena);
         entry.* = try std.fmt.parseUnsigned(u32, line, 10);
     }
-    const part_1 = blk: {
-        for (expenses.items) |a|
-            for (expenses.items) |b|
-                if (a + b == 2020)
-                    break :blk a * b;
+    var part_1: ?u32 = null;
+    var part_2: ?u32 = null;
+    for (expenses.items) |a| {
+        for (expenses.items) |b| {
+            const sum = a + b;
+            if (sum == 2020)
+                part_1 = a * b;
+            for (expenses.items) |c| {
+                if (sum + c == 2020)
+                    part_2 = a * b * c;
+            }
+        }
+    }
+    if (part_1 == null or part_2 == null)
         return error.Unexpected;
-    };
-    const part_2 = blk: {
-        for (expenses.items) |a|
-            for (expenses.items) |b|
-                for (expenses.items) |c|
-                    if (a + b + c == 2020)
-                        break :blk a * b * c;
-        return error.Unexpected;
-    };
-    try n.out.print("{}\n{}\n", .{part_1, part_2});
+    try n.out.print("{}\n{}\n", .{part_1.?, part_2.?});
 }
