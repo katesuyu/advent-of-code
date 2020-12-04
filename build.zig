@@ -205,25 +205,27 @@ pub fn build(b: *Builder) !void {
             \\        };
             \\
             \\        if (i > 0) std.debug.print("\n", .{});
-            \\        timer.reset();
             \\
-            \\        const puzzle_main = puzzle.pkg.main;
-            \\        switch (@typeInfo(@typeInfo(@TypeOf(puzzle_main)).Fn.return_type.?)) {
-            \\            .Void => puzzle_main(utils),
+            \\        timer.reset();
+            \\        const result = puzzle.pkg.main(utils);
+            \\        var elapsed = timer.read();
+            \\
+            \\        switch (@typeInfo(@typeInfo(@TypeOf(puzzle.pkg.main)).Fn.return_type.?)) {
             \\            .ErrorUnion => {
-            \\                const result = puzzle_main(utils) catch |err| {
+            \\                if (result) |n| {
+            \\                    comptime std.debug.assert(@TypeOf(n) == void);
+            \\                } else |err| {
             \\                    std.log.err("{}", .{@errorName(err)});
             \\                    if (@errorReturnTrace()) |trace| {
             \\                        std.debug.dumpStackTrace(trace.*);
             \\                    }
             \\                    status = 1;
-            \\                };
-            \\                comptime std.debug.assert(@TypeOf(result) == void);
+            \\                }
             \\            },
+            \\            .Void => {},
             \\            else => comptime unreachable,
             \\        }
             \\
-            \\        var elapsed = timer.read();
             \\        var fraction: ?u64 = null;
             \\        var unit: []const u8 = "ns";
             \\        if (elapsed > 1000) {
