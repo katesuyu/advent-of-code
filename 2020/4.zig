@@ -11,7 +11,8 @@ pub fn main(n: util.Utils) !void {
         const document = Document.parse(batch);
         if (document.isComplete()) {
             num_complete += 1;
-            num_valid += @boolToInt(document.isValid());
+            if (document.isValid())
+                num_valid += 1;
         }
     }
 
@@ -41,51 +42,32 @@ const Document = struct {
     }
 
     fn isComplete(self: Document) bool {
-        inline for (std.meta.fields(Document)) |info| {
-            if (@field(self, info.name) == null)
-                return false;
-        }
+        inline for (std.meta.fields(Document)) |info|
+            if (@field(self, info.name) == null) return false;
         return true;
     }
 
     fn isValid(self: Document) bool {
-        const byr = util.parse_u32(self.byr.?) orelse return false;
-        const iyr = util.parse_u32(self.iyr.?) orelse return false;
-        const eyr = util.parse_u32(self.eyr.?) orelse return false;
+        @setEvalBranchQuota(3000);
 
-        if (byr < 1920 or byr > 2002) return false;
-        if (iyr < 2010 or iyr > 2020) return false;
-        if (eyr < 2020 or eyr > 2030) return false;
+        if (!validRange(self.byr.?, 1920, 2002)) return false;
+        if (!validRange(self.iyr.?, 2010, 2020)) return false;
+        if (!validRange(self.eyr.?, 2020, 2030)) return false;
 
         const hgt = self.hgt.?;
         if (std.mem.endsWith(u8, hgt, "cm")) {
-            const height = util.parse_u32(hgt[0 .. hgt.len - 2]) orelse return false;
-            if (height < 150 or height > 193) return false;
+            if (!validRange(hgt[0..(hgt.len - 2)], 150, 193)) return false;
         } else if (std.mem.endsWith(u8, hgt, "in")) {
-            const height = util.parse_u32(hgt[0 .. hgt.len - 2]) orelse return false;
-            if (height < 59 or height > 76) return false;
+            if (!validRange(hgt[0..(hgt.len - 2)], 59, 76)) return false;
         } else return false;
 
-        const hcl = self.hcl.?;
-        if (hcl.len != 7 or hcl[0] != '#') return false;
-        for (hcl[1..]) |c| switch (c) {
-            '0'...'9', 'a'...'f' => {},
-            else => return false,
-        };
-
-        if (self.pid.?.len != 9) return false;
-        for (self.pid.?) |c| switch (c) {
-            '0'...'9' => {},
-            else => return false,
-        };
-
-        return validEyeColor(self.ecl.?);
+        if (!util.isMatch("#[0-9a-f]{6}", self.hcl.?)) return false;
+        if (!util.isMatch("[0-9]{9}", self.pid.?)) return false;
+        return util.isMatch("amb|blu|brn|gry|grn|hzl|oth", self.ecl.?);
     }
 
-    fn validEyeColor(str: []const u8) bool {
-        inline for (.{ "amb", "blu", "brn", "gry", "grn", "hzl", "oth" }) |color| {
-            if (std.mem.eql(u8, str, color)) return true;
-        }
-        return false;
+    fn validRange(str: []const u8, min: u32, max: u32) bool {
+        const int = util.parse_u32(str) catch return false;
+        return int >= min and int <= max;
     }
 };

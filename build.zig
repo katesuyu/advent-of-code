@@ -31,10 +31,10 @@ pub fn build(b: *Builder) !void {
             }
         }
 
-        // Extract the years from the list and sort them in descending order.
+        // Extract the years from the list and sort them in ascending order.
         std.sort.sort(Year, list.items, {}, struct {
             fn impl(_: void, l: Year, r: Year) bool {
-                return l.int > r.int;
+                return l.int < r.int;
             }
         }.impl);
         break :blk list.items;
@@ -44,19 +44,20 @@ pub fn build(b: *Builder) !void {
     // provided, the latest day of the most recent year will be executed.
     const filter = b.option([]const u8, "filter", "Filter the solutions to be executed");
     if (filter == null and years.len > 0) {
-        years.len = 1;
+        years = years[(years.len - 1)..];
     }
 
     // Create a dependency listing made available to each puzzle solution.
-    const ctregex = Pkg{
+    const deps = try b.allocator.alloc(Pkg, 2);
+    deps[0] = .{
         .name = "ctregex",
         .path = b.pathFromRoot("deps/ctregex.zig/ctregex.zig"),
     };
-    const util = Pkg{
+    deps[1] = .{
         .name = "util",
         .path = b.pathFromRoot("util.zig"),
+        .dependencies = deps[0..1],
     };
-    const deps = [_]Pkg{ctregex, util};
 
     // Create a listing of the puzzle solutions to be filtered and run.
     const Puzzle = struct { pkg: Pkg, day: u32 };
@@ -83,7 +84,7 @@ pub fn build(b: *Builder) !void {
                             year.str,
                             item.name,
                         }),
-                        .dependencies = &deps,
+                        .dependencies = deps,
                     },
                     .day = day,
                 };
@@ -91,11 +92,11 @@ pub fn build(b: *Builder) !void {
             }
         }
 
-        // Sort the year's puzzles by day in descending order.
+        // Sort the year's puzzles by day in ascending order.
         if (list.items.len > 0) {
             std.sort.sort(Puzzle, list.items, {}, struct {
                 fn impl(_: void, l: Puzzle, r: Puzzle) bool {
-                    return l.day > r.day;
+                    return l.day < r.day;
                 }
             }.impl);
             try puzzles.put(b.allocator, year.int, list.items);
@@ -111,8 +112,7 @@ pub fn build(b: *Builder) !void {
         // Import std and ctregex, and define metadata structs.
         try writer.writeAll(
             \\const std = @import("std");
-            \\const ctregex = @import("ctregex");
-            \\const Utils = @import("util").Utils;
+            \\const util = @import("util");
             \\
             \\const Puzzle = struct {
             \\    id: []const u8,
@@ -136,11 +136,13 @@ pub fn build(b: *Builder) !void {
                 \\
             , .{ filter_, num_puzzles });
 
-            for (puzzles.entries.items) |entry| {
+            // Attempt to match entries based on `year:entry` pattern, and fallback to
+            // just `year` pattern (which is accepted as a convenience feature).
+            for (puzzles.items()) |year| {
                 try writer.writeAll("\n");
-                for (entry.value) |item| {
+                for (year.value) |puzzle| {
                     try writer.print(
-                        \\    if (ctregex.match(filter, .{{}}, "{0Z}") catch unreachable) |_| {{
+                        \\    if (util.isMatch(filter, "{0Z}")) {{
                         \\        latest_year = {2};
                         \\        items = items ++ [_]Puzzle{{.{{
                         \\            .id = "{0Z}",
@@ -150,28 +152,31 @@ pub fn build(b: *Builder) !void {
                         \\        }}}};
                         \\    }}
                         \\
-                    , .{ item.pkg.name, item.day, entry.key });
+                    , .{ puzzle.pkg.name, puzzle.day, year.key });
                 }
+
+                const newest = year.value[year.value.len - 1];
                 try writer.print(
-                    \\    if (latest_year != {2}) {{
-                    \\        if (ctregex.match(filter, .{{}}, "{2}") catch unreachable) |_| {{
+                    \\    if (latest_year != {2} and util.isMatch(filter, "{2}")) {{
                     \\            items = items ++ [_]Puzzle{{.{{
-                    \\                .id = "{0Z}",
-                    \\                .pkg = @import("{0Z}"),
-                    \\                .day = {1},
-                    \\                .year = {2},
-                    \\            }}}};
-                    \\        }}
+                    \\            .id = "{0Z}",
+                    \\            .pkg = @import("{0Z}"),
+                    \\            .day = {1},
+                    \\            .year = {2},
+                    \\        }}}};
                     \\    }}
                     \\
-                , .{ entry.value[0].pkg.name, entry.value[0].day, entry.key });
+                , .{ newest.pkg.name, newest.day, year.key });
             }
-            try writer.writeAll("\n    break :blk items;\n};\n");
+            try writer.writeAll("    break :blk items;\n};\n");
         } else {
-            if (puzzles.entries.items.len == 0) {
+            if (puzzles.count() == 0) {
+                // We don't have any puzzles to run, so just use an empty slice.
                 try writer.writeAll("const puzzles: []const Puzzle = &[_]Puzzle{};\n");
             } else {
-                const entry = &puzzles.entries.items[0];
+                // Puzzle entries are sorted in ascending order, so this is the latest entry.
+                const year = &puzzles.items()[0];
+                const newest = year.value[year.value.len - 1];
                 try writer.print(
                     \\const puzzles: []const Puzzle = &[_]Puzzle{{.{{
                     \\    .id = "{0Z}",
@@ -180,7 +185,7 @@ pub fn build(b: *Builder) !void {
                     \\    .year = {2},
                     \\}}}};
                     \\
-                , .{ entry.value[0].pkg.name, entry.value[0].day, entry.key });
+                , .{ newest.pkg.name, newest.day, year.key });
             }
         }
 
@@ -198,7 +203,7 @@ pub fn build(b: *Builder) !void {
             \\        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             \\        defer arena.deinit();
             \\
-            \\        const utils = Utils{
+            \\        const utils = util.Utils{
             \\            .arena = &arena.allocator,
             \\            .gpa = &gpa.allocator,
             \\            .out = stdout,
@@ -261,9 +266,8 @@ pub fn build(b: *Builder) !void {
     });
 
     const exe = b.addExecutableFromWriteFileStep("advent-of-code", exe_src, "main.zig");
-    exe.addPackage(ctregex);
-    exe.addPackage(util);
-    for (puzzles.entries.items) |entry|
+    exe.addPackage(deps[1]);
+    for (puzzles.items()) |entry|
         for (entry.value) |value|
             exe.addPackage(value.pkg);
     exe.setBuildMode(mode);
