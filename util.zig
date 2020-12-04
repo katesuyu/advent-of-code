@@ -22,3 +22,7 @@ pub fn list(comptime T: type) List(T) {
 pub fn map(comptime K: type, comptime V: type) Map(K, V) {
     return Map(K, V){};
 }
+
+pub fn parse_u32(str: []const u8) ?u32 {
+    return std.fmt.parseUnsigned(u32, str, 10) catch null;
+}
