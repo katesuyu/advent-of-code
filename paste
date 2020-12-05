@@ -47,9 +47,14 @@ pub fn main(n: util.Utils) !void {
 }
 EOF
 
-[ -e "${2}/${1}.txt" ] || xclip -o -selection clipboard >"${2}/${1}.txt"
+[ -e "${2}/${1}.txt" ] || \
+if type xclip >/dev/null; then
+    xclip -o -selection clipboard >"${2}/${1}.txt"
+elif type termux-clipboard-get >/dev/null; then
+    termux-clipboard-get >"${2}/${1}.txt"
+fi
 
 [ "${exename}" = 'edit' ] && {
-    editor=${VISUAL-"${EDITOR-'vi'}"}
+    editor=${VISUAL-"${EDITOR-vi}"}
     "${editor}" "${2}/${1}.zig"
 }
