@@ -1,17 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: 0BSD
 set -Cu
-exename=${0##*'/'}
-exepath=$(command -v -- "${exename}" && printf 'n') && [ "${exepath%?}" = "${0}" ]
-if [ "${?}" -eq 0 ]; then
-    exepath=${exename}
-else
-    exepath=${0}
-fi
 
 cd "$(dirname -- "$(readlink -ne -- "${0}")")"
 err () {
-    printf '%s: %s\n' "${exepath}" "${1}" >&2
+    printf '%s: %s\n' "${0}" "${1}" >&2
     exit 1
 }
 
@@ -54,7 +47,7 @@ elif type termux-clipboard-get >/dev/null; then
     termux-clipboard-get >"${2}/${1}.txt"
 fi
 
-[ "${exename}" = 'edit' ] && {
+[ "${0##*'/'}" = 'edit' ] && {
     editor=${VISUAL-"${EDITOR-vi}"}
     "${editor}" "${2}/${1}.zig"
 }

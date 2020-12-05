@@ -8,7 +8,9 @@ This repository contains my solutions to the annual {aoc-website}[Advent of Code
 Each puzzle is located in a file named in the format `[year]/[day].zig`.
 Each puzzle's input is expected to be in the corresponding file `[year]/[day].txt`.
 
-Use `./paste <day> [year]` to create `[year]/[day].zig` and paste your clipboard into `[year]/[day].txt`.
+Use `./paste <day> [year]` to create `[year]/[day].zig` and paste your clipboard into `[year]/[day].txt` if it does not already exist.
+
+Use `./edit <day> [year]` to do the same while also opening your configured editor (`$VISUAL` or `$EDITOR`).
 
 == License
 
