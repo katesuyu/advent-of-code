@@ -13,7 +13,7 @@ pub fn main(n: util.Utils) !void {
         while (polls.next()) |poll| {
             num_polls += 1;
             for (poll) |c| {
-                const i: usize = std.math.clamp(c, 'a', 'z') - 'a';
+                const i: usize = (try util.expectRange(c, 'a', 'z')) - 'a';
                 if (yes_responses[i] == 0) {
                     any_yes_responses += 1;
                 }

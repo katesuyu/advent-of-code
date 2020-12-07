@@ -1,4 +1,5 @@
 const std = @import("std");
+const trait = std.meta.trait;
 const ctregex = @import("ctregex");
 
 /// A collection of utilities that are likely to be used on a fairly common
@@ -54,4 +55,46 @@ pub fn match(comptime regex: []const u8, str: []const u8) !?MatchResult(regex) {
 /// Wrapper over `(match(regex, str) catch null) != null`.
 pub fn isMatch(comptime regex: []const u8, str: []const u8) bool {
     return (match(regex, str) catch null) != null;
+}
+
+/// Return an error if the provided condition is false.
+pub fn expect(condition: bool) !void {
+    if (!condition) return error.AssertionFailed;
+}
+
+/// Return an error if the provided values are inequal.
+pub fn expectEq(a: anytype, b: anytype) !void {
+    if (a != b) return error.AssertionFailed;
+}
+
+/// Return an error if the provided values are equal.
+pub fn expectNe(a: anytype, b: anytype) !void {
+    if (a == b) return error.AssertionFailed;
+}
+
+/// Return an error if the number is outside of the provided bounds.
+/// Otherwise, return the number to use in another expression.
+pub fn expectRange(num: anytype, lower: anytype, upper: anytype) !@TypeOf(num) {
+    if (lower <= num and upper >= num) return num;
+    return error.AssertionFailed; // num < lower or num > upper
+}
+
+/// Can take an optional, array of optionals, or tuple of optionals.
+/// Return an error if any of these optional values are null.
+pub fn expectNonNull(values: anytype) !void {
+    const T = @TypeOf(values);
+    if (comptime trait.isTuple(T)) {
+        comptime var i = 0;
+        inline while (i < values.len) : (i += 1) {
+            if (values[i] == null) return error.AssertionFailed;
+        }
+    } else if (comptime trait.isIndexable(T)) {
+        for (values) |value| {
+            if (value == null) return error.AssertionFailed;
+        }
+    } else if (@typeInfo(T) == .Optional) {
+        if (values == null) return error.AssertionFailed;
+    } else {
+        @compileError("expectNonNull unimplemented for " ++ @typeName(T));
+    }
 }

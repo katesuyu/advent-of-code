@@ -22,7 +22,6 @@ pub fn main(n: util.Utils) !void {
             }
         }
     }
-    if (part_1 == null or part_2 == null)
-        return error.Unexpected;
+    try util.expectNonNull(.{part_1, part_2});
     try n.out.print("{}\n{}\n", .{part_1.?, part_2.?});
 }
