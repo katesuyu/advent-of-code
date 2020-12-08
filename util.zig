@@ -48,13 +48,13 @@ pub fn MatchResult(comptime regex: []const u8) type {
 
 /// Wrapper over ctregex.match that is UTF-8 always and compile errors if the
 /// regex is invalid instead of silently returning `void`.
-pub fn match(comptime regex: []const u8, str: []const u8) !?MatchResult(regex) {
-    return ctregex.match(regex, .{}, str);
+pub fn match(comptime regex: []const u8, str: []const u8) ?MatchResult(regex) {
+    return ctregex.match(regex, .{}, str) catch null;
 }
 
 /// Wrapper over `(match(regex, str) catch null) != null`.
 pub fn isMatch(comptime regex: []const u8, str: []const u8) bool {
-    return (match(regex, str) catch null) != null;
+    return match(regex, str) != null;
 }
 
 /// Return an error if the provided condition is false.
@@ -97,4 +97,9 @@ pub fn expectNonNull(values: anytype) !void {
     } else {
         @compileError("expectNonNull unimplemented for " ++ @typeName(T));
     }
+}
+
+/// Takes an optional value and unwraps it, returning an error if the value was null.
+pub fn unwrap(value: anytype) !std.meta.Child(@TypeOf(value)) {
+    return if (value == null) error.AssertionFailed else value.?;
 }
