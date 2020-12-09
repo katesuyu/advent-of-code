@@ -67,7 +67,7 @@ const Document = struct {
     }
 
     fn validRange(str: []const u8, min: u32, max: u32) bool {
-        const int = util.parse_u32(str) catch return false;
+        const int = util.parseUint(u32, str) catch return false;
         return int >= min and int <= max;
     }
 };

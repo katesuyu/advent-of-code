@@ -10,7 +10,7 @@ err () {
 
 [ "${#}" -ge 1 -a "${#}" -le 2 ] || err "expected 1 or 2 arguments, found ${#}"
 case "${1}" in
-    *[!0-9]*) err "not a number: ${1}" ;;
+    *[!0-9A-Za-z_]*) err "invalid day or shared util identifier: ${1}" ;;
 esac
 
 if [ "${#}" -eq 2 ]; then
@@ -31,23 +31,29 @@ else
     set -- "${1}" "${newest}"
 fi
 
-[ -e "${2}/${1}.zig" ] || cat <<EOF >"${2}/${1}.zig"
-const std = @import("std");
-const util = @import("util");
+boilerplate=$(
+[ -z "${1##*[A-Za-z_]*}" ] || cat <<EOF
+
 const input = @embedFile("${1}.txt");
 
 pub fn main(n: util.Utils) !void {
 }
 EOF
+)
 
-[ -e "${2}/${1}.txt" ] || \
+[ -e "${2}/${1}.zig" ] || cat <<EOF >"${2}/${1}.zig"
+const std = @import("std");
+const util = @import("util");${boilerplate}
+EOF
+
+[ -z "${boilerplate}" ] || [ -e "${2}/${1}.txt" ] || \
 if type xclip >/dev/null; then
     xclip -o -selection clipboard >"${2}/${1}.txt"
 elif type termux-clipboard-get >/dev/null; then
     termux-clipboard-get >"${2}/${1}.txt"
 fi
 
-[ "${0##*'/'}" = 'edit' ] && {
+[ "${0##*'/'}" != 'edit' ] || {
     editor=${VISUAL-"${EDITOR-vi}"}
     "${editor}" "${2}/${1}.zig"
 }

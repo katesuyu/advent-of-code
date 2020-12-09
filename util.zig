@@ -32,9 +32,14 @@ pub fn map(comptime K: type, comptime V: type) Map(K, V) {
     return Map(K, V){};
 }
 
-/// Convenience wrapper over parseUnsigned for u32 radix 10.
-pub fn parse_u32(str: []const u8) !u32 {
-    return std.fmt.parseUnsigned(u32, str, 10);
+/// Convenience wrapper over std.fmt.parseUnsigned for T radix 10.
+pub fn parseUint(comptime T: type, str: []const u8) !T {
+    return std.fmt.parseUnsigned(T, str, 10);
+}
+
+/// Convenience wrapper over std.fmt.parseInt for T radix 10.
+pub fn parseInt(comptime T: type, str: []const u8) !T {
+    return std.fmt.parseInt(T, str, 10);
 }
 
 /// Wrapper over ctregex.MatchResult that compile errors instead of silently

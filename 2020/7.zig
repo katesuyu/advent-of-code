@@ -18,7 +18,7 @@ const Bag = struct {
         while (contents.next()) |bag_str| {
             const num_end = try util.unwrap(std.mem.indexOf(u8, bag_str, " "));
             const name_end = try util.unwrap(std.mem.lastIndexOf(u8, bag_str, " "));
-            const bag_count = try util.parse_u32(bag_str[0..num_end]);
+            const bag_count = try util.parseUint(u32, bag_str[0..num_end]);
             const bag_name = bag_str[(num_end + 1)..name_end];
 
             const entry = try util.unwrap(bags.getEntry(bag_name));
