@@ -23,7 +23,6 @@ const joltages = comptime blk: {
 };
 
 pub fn main(n: util.Utils) !void {
-    @setEvalBranchQuota(joltages.len * 40);
     var adapters = comptime blk: {
         var buf: [joltages.len + 2]Adapter = undefined;
         for (joltages) |joltage, i|
