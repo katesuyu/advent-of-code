@@ -1,33 +1,29 @@
 const std = @import("std");
 const util = @import("util");
-const input = @embedFile("3.txt");
-
-const width = std.mem.indexOfScalar(u8, input, '\n').?;
-const height = input.len / (width + 1);
-
-fn count(right: usize, down: usize) usize {
-    var x = right;
-    var y = down;
-    var i: usize = 0;
-    while (y < height) : ({
-        y += down;
-        x += right;
-        x %= width;
-    }) {
-        if (input[y * (width + 1) + x] == '#') i += 1;
-    }
-    return i;
-}
+const input = comptime util.gridRows(@embedFile("3.txt"));
 
 pub fn main(n: util.Utils) !void {
-    const r1d1 = count(1, 1);
-    const r3d1 = count(3, 1);
-    const r5d1 = count(5, 1);
-    const r7d1 = count(7, 1);
-    const r1d2 = count(1, 2);
-
-    try n.out.print("{}\n{}\n", .{
-        r3d1,
-        r1d1 * r3d1 * r5d1 * r7d1 * r1d2,
-    });
+    const slopes = .{
+        .{ 1, 1 },
+        .{ 3, 1 },
+        .{ 5, 1 },
+        .{ 7, 1 },
+        .{ 1, 2 },
+    };
+    var counts = [_]usize{0} ** 5;
+    var x = [_]usize{0} ** 5;
+    for (input) |row, y| {
+        inline for (slopes) |slope, i| {
+            if (y % slope[1] == 0) {
+                if (row[x[i]] == '#')
+                    counts[i] += 1;
+                x[i] += slope[0];
+                x[i] %= row.len;
+            }
+        }
+    }
+    var product = counts[0];
+    for (counts[1..]) |num|
+        product *= num;
+    try n.out.print("{}\n{}\n", .{ counts[1], product });
 }

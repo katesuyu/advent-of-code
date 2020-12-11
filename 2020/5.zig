@@ -2,32 +2,33 @@ const std = @import("std");
 const util = @import("util");
 const input = @embedFile("5.txt");
 
-pub fn main(n: util.Utils) !void {
-    var id_list = util.list(u10);
-    var lines = std.mem.tokenize(input, "\n");
-    while (lines.next()) |line| {
+const id_list = comptime blk: {
+    @setEvalBranchQuota(input.len * 10);
+    var idx = 0;
+    var buf: []const u10 = &[_]u10{};
+    while (idx < input.len) : (idx += 11) {
+        const line = input[idx..][0..10].*;
         var id: u10 = 0;
-        comptime var i = 0;
-        inline while (i < 7) : (i += 1) {
-            if (line[i] == 'B') {
+        for (line) |c, i| {
+            if (c == 'B' or c == 'R') {
                 id |= 1 << (9 - i);
             }
         }
-        inline while (i < 10) : (i += 1) {
-            if (line[i] == 'R') {
-                id |= 1 << (9 - i);
-            }
-        }
-        try id_list.append(n.arena, id);
+        buf = buf ++ [_]u10{id};
     }
-    std.sort.sort(u10, id_list.items, {}, comptime std.sort.desc(u10));
+    var sorted = buf[0..buf.len].*;
+    std.sort.sort(u10, &sorted, {}, std.sort.desc(u10));
+    break :blk sorted;
+};
+
+pub fn main(n: util.Utils) !void {
     const our_id = blk: {
-        var prev = id_list.items[0];
-        for (id_list.items[1..]) |id| {
+        var prev = id_list[0];
+        for (id_list[1..]) |id| {
             if (prev - id == 2)
                 break :blk id + 1;
             prev = id;
-        } else return error.Unexpected;
+        } else return error.BadInput;
     };
-    try n.out.print("{}\n{}\n", .{id_list.items[0], our_id});
+    try n.out.print("{}\n{}\n", .{id_list[0], our_id});
 }

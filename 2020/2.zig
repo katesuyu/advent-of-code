@@ -2,33 +2,41 @@ const std = @import("std");
 const util = @import("util");
 const input = @embedFile("2.txt");
 
-pub fn main(n: util.Utils) !void {
+const Policy = struct {
+    password: []const u8,
+    min: u8,
+    max: u8,
+    char: u8,
+};
+
+const policies = comptime blk: {
+    @setEvalBranchQuota(input.len * 20);
     var lines = std.mem.tokenize(input, "\n");
+    var buf: []const Policy = &[_]Policy{};
+    while (lines.next()) |line| {
+        const max_start = std.mem.indexOfScalar(u8, line, '-').? + 1;
+        const max_end = std.mem.indexOfScalarPos(u8, line, max_start, ' ').?;
+        buf = buf ++ [_]Policy{.{
+            .password = line[(max_end + 4)..],
+            .min = util.parseUint(u8, line[0..(max_start - 1)]) catch unreachable,
+            .max = util.parseUint(u8, line[max_start..max_end]) catch unreachable,
+            .char = line[max_end + 1],
+        }};
+    }
+    break :blk buf;
+};
+
+pub fn main(n: util.Utils) !void {
     var policy_1: usize = 0;
     var policy_2: usize = 0;
-    while (lines.next()) |line| {
-        var min_end: usize = 0;
-        while (line[min_end] >= '0' and line[min_end] <= '9') : (min_end += 1) {}
-        const min = try std.fmt.parseUnsigned(usize, line[0..min_end], 10);
-
-        const max_start = min_end + 1;
-        var max_end = max_start;
-        while (line[max_end] >= '0' and line[max_end] <= '9') : (max_end += 1) {}
-        const max = try std.fmt.parseUnsigned(usize, line[max_start..max_end], 10);
-
-        const char = line[max_end + 1];
-        const password = line[max_end + 4..];
-
-        var occurrences: usize = 0;
-        for (password) |c| {
-            if (c == char)
-                occurrences += 1;
-        }
-
-        if (occurrences >= min and occurrences <= max)
+    for (policies) |p| {
+        const slice: *const [1]u8 = &p.char;
+        const count = std.mem.count(u8, p.password, slice);
+        const min_eq = p.password[p.min - 1] == p.char;
+        const max_eq = p.password[p.max - 1] == p.char;
+        if (count >= p.min and count <= p.max)
             policy_1 += 1;
-
-        if ((password[min - 1] == char) != (password[max - 1] == char))
+        if (min_eq != max_eq)
             policy_2 += 1;
     }
     try n.out.print("{}\n{}\n", .{policy_1, policy_2});

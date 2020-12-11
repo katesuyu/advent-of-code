@@ -32,6 +32,27 @@ pub fn map(comptime K: type, comptime V: type) Map(K, V) {
     return Map(K, V){};
 }
 
+/// Transforms an input of bytes in a rectangular grid (a series of equal length
+/// rows separated by newlines; a common form of input)
+pub fn gridRows(comptime input: []const u8) GridRows(input) {
+    @setEvalBranchQuota(input.len * 10);
+    comptime {
+        var buf: GridRows(input) = undefined;
+        for (buf) |*bytes, y| {
+            const width = bytes.len;
+            const index = y * (width + 1);
+            bytes.* = input[index..][0..width].*;
+        }
+        return buf;
+    }
+}
+
+fn GridRows(comptime input: []const u8) type {
+    const width = comptime std.mem.indexOfScalar(u8, input, '\n').?;
+    const height = @divExact(input.len, width + 1);
+    return [height][width]u8;
+}
+
 /// Convenience wrapper over std.fmt.parseUnsigned for T radix 10.
 pub fn parseUint(comptime T: type, str: []const u8) !T {
     return std.fmt.parseUnsigned(T, str, 10);
