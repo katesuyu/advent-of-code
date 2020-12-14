@@ -9,33 +9,36 @@ const MaskValueInstr = struct {
 
 const MaskAddrInstr = struct {
     addr: u36,
-    value: u36,
     mask: u36,
+    value: u36,
 };
 
 usingnamespace comptime blk: {
-    @setEvalBranchQuota(input.len * 30);
+    @setEvalBranchQuota(input.len * 20);
     var bitwise_or: u36 = 0;
     var value_mask: u36 = undefined;
     var addr_mask: u36 = undefined;
-    var mask_value_buf: []const [2]comptime_int = &[_][2]comptime_int{};
-    var mask_addr_buf: []const [3]comptime_int = &[_][3]comptime_int{};
+    var mask_values_buf: []const MaskValueInstr = &[_]MaskValueInstr{};
+    var mask_addrs_buf: []const MaskAddrInstr = &[_]MaskAddrInstr{};
     var lines = std.mem.tokenize(input, "\n");
     while (lines.next()) |line| {
         if (std.mem.eql(u8, line[0..4], "mem[")) {
             var idx_end = 4;
             while (line[idx_end] != ']')
                 idx_end += 1;
-            const idx = util.parseUint(u36, line[4..idx_end]) catch unreachable;
+            const addr = util.parseUint(u36, line[4..idx_end]) catch unreachable;
             const value = util.parseUint(u36, line[(idx_end + 4)..]) catch unreachable;
             const masked_value = (value & value_mask) | bitwise_or;
-            const masked_addr = (idx & addr_mask) | bitwise_or;
-            mask_value_buf = mask_value_buf ++ [_][2]comptime_int{
-                [_]comptime_int{idx, masked_value},
-            };
-            mask_addr_buf = mask_addr_buf ++ [_][3]comptime_int{
-                [_]comptime_int{masked_addr, value, value_mask},
-            };
+            const masked_addr = (addr & addr_mask) | bitwise_or;
+            mask_values_buf = mask_values_buf ++ [_]MaskValueInstr{.{
+                .addr = addr,
+                .value = masked_value,
+            }};
+            mask_addrs_buf = mask_addrs_buf ++ [_]MaskAddrInstr{.{
+                .addr = masked_addr,
+                .mask = value_mask,
+                .value = value,
+            }};
         } else {
             std.debug.assert(line.len == 36 + 7);
             const mask_str = line[7..];
@@ -52,22 +55,9 @@ usingnamespace comptime blk: {
             }
         }
     }
-    var mask_values_: []const MaskValueInstr = &[_]MaskValueInstr{};
-    var mask_addrs_: []const MaskAddrInstr = &[_]MaskAddrInstr{};
-    for (mask_value_buf) |memset|
-        mask_values_ = mask_values_ ++ [_]MaskValueInstr{.{
-            .addr = memset[0],
-            .value = memset[1],
-        }};
-    for (mask_addr_buf) |memset|
-        mask_addrs_ = mask_addrs_ ++ [_]MaskAddrInstr{.{
-            .addr = memset[0],
-            .value = memset[1],
-            .mask = memset[2],
-        }};
     break :blk struct {
-        pub const mask_values = mask_values_[0..mask_values_.len].*;
-        pub const mask_addrs = mask_addrs_[0..mask_addrs_.len].*;
+        pub const mask_values = mask_values_buf[0..mask_values_buf.len].*;
+        pub const mask_addrs = mask_addrs_buf[0..mask_addrs_buf.len].*;
     };
 };
 
