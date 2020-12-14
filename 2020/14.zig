@@ -14,7 +14,7 @@ const MaskAddrInstr = struct {
 };
 
 usingnamespace comptime blk: {
-    @setEvalBranchQuota(input.len * 100);
+    @setEvalBranchQuota(input.len * 30);
     var bitwise_or: u36 = 0;
     var value_mask: u36 = undefined;
     var addr_mask: u36 = undefined;
@@ -30,10 +30,10 @@ usingnamespace comptime blk: {
             const value = util.parseUint(u36, line[(idx_end + 4)..]) catch unreachable;
             const masked_value = (value & value_mask) | bitwise_or;
             const masked_addr = (idx & addr_mask) | bitwise_or;
-            mask_value_init = mask_value_init ++ [_][2]comptime_int{
+            mask_value_buf = mask_value_buf ++ [_][2]comptime_int{
                 [_]comptime_int{idx, masked_value},
             };
-            mask_addr_init = mask_addr_init ++ [_][3]comptime_int{
+            mask_addr_buf = mask_addr_buf ++ [_][3]comptime_int{
                 [_]comptime_int{masked_addr, value, value_mask},
             };
         } else {
@@ -53,7 +53,7 @@ usingnamespace comptime blk: {
         }
     }
     var mask_values_: []const MaskValueInstr = &[_]MaskValueInstr{};
-    var mask_addrs_: []const MaskAddrInstr = &[_]MaskValueInstr{};
+    var mask_addrs_: []const MaskAddrInstr = &[_]MaskAddrInstr{};
     for (mask_value_buf) |memset|
         mask_values_ = mask_values_ ++ [_]MaskValueInstr{.{
             .addr = memset[0],
@@ -78,22 +78,28 @@ pub fn main(n: util.Utils) !void {
     var part_1: u64 = 0;
     for (mask_values) |instr|
         memory.putAssumeCapacity(instr.addr, instr.value);
-    for (memory.entries()) |entry|
+    for (memory.items()) |entry|
         part_1 += entry.value;
 
     var part_2: u64 = 0;
     memory.clearRetainingCapacity();
-    for (mask_addrs) |instr| {
-        var bits: u36 = instr.mask;
-        var bit_count: u36 = @popCount(instr.mask);
-        while (bit_count > 0) : (bit_count -= 1) {
-            const target_bit = ~(@as(u36, 1) << @ctz(u36, bits));
-        }
-    }
+    for (mask_addrs) |instr|
+        permuteAll(&memory, instr);
+    for (memory.items()) |entry|
+        part_2 += entry.value;
 
     try n.out.print("{}\n{}\n", .{ part_1, part_2 });
 }
 
-fn permuteAll(memory: *util.Map(u36, u36), addr: u36, mask: u36) void {
-
+fn permuteAll(memory: *util.Map(u36, u36), instr: MaskAddrInstr) void {
+    if (instr.mask == 0) {
+        memory.putAssumeCapacity(instr.addr, instr.value);
+    } else {
+        const target_bit = @as(u36, 1) << @ctz(u36, instr.mask);
+        var new_instr = instr;
+        new_instr.mask &= ~target_bit;
+        permuteAll(memory, new_instr);
+        new_instr.addr |= target_bit;
+        permuteAll(memory, new_instr);
+    }
 }
