@@ -11,11 +11,16 @@ const Policy = struct {
 
 const policies = comptime blk: {
     @setEvalBranchQuota(input.len * 20);
-    var lines = std.mem.tokenize(input, "\n");
     var buf: []const Policy = &[_]Policy{};
-    while (lines.next()) |line| {
-        const max_start = std.mem.indexOfScalar(u8, line, '-').? + 1;
-        const max_end = std.mem.indexOfScalarPos(u8, line, max_start, ' ').?;
+    for (util.lines(input)) |line| {
+        var max_start = 1;
+        while (line[max_start - 1] != '-')
+            max_start += 1;
+
+        var max_end = max_start + 1;
+        while (line[max_end] != ' ')
+            max_end += 1;
+
         buf = buf ++ [_]Policy{.{
             .password = line[(max_end + 4)..],
             .min = util.parseUint(u8, line[0..(max_start - 1)]) catch unreachable,

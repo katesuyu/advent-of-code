@@ -20,8 +20,7 @@ usingnamespace comptime blk: {
     var addr_mask: u36 = undefined;
     var mask_values_buf: []const MaskValueInstr = &[_]MaskValueInstr{};
     var mask_addrs_buf: []const MaskAddrInstr = &[_]MaskAddrInstr{};
-    var lines = std.mem.tokenize(input, "\n");
-    while (lines.next()) |line| {
+    for (util.lines(input)) |line| {
         if (std.mem.eql(u8, line[0..4], "mem[")) {
             var idx_end = 4;
             while (line[idx_end] != ']')

@@ -1,6 +1,6 @@
 const std = @import("std");
 const util = @import("util");
-const input = util.gridRows(@embedFile("17.txt"));
+const input = @embedFile("17.txt");
 
 const CubeState = enum(u1) {
     inactive = 0,
@@ -21,7 +21,7 @@ const World = struct {
                 } ** 30,
             } ** 30,
         } ** 30;
-        for (input) |row, x| {
+        for (util.gridRows(input)) |row, x| {
             for (row) |state, y| {
                 buf[x + 12][y + 12][15][15] = switch (state) {
                     '.' => .inactive,
