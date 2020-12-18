@@ -53,6 +53,26 @@ fn GridRows(comptime input: []const u8) type {
     return [height][width]u8;
 }
 
+/// Transforms an input of characters separated by newlines into an array of lines.
+/// This is done more efficiently than `std.mem.tokenize` to optimize comptime eval.
+pub fn lines(comptime input: []const u8) []const []const u8 {
+    @setEvalBranchQuota(input.len * 5);
+    comptime {
+        var buf: []const []const u8 = &[_][]const u8{};
+        var slice = input;
+        while (slice.len > 0) {
+            for (slice) |c, i| {
+                if (c == '\n') {
+                    buf = buf ++ [_][]const u8{slice[0..i]};
+                    slice = slice[(i + 1)..];
+                    break;
+                }
+            }
+        }
+        return buf;
+    }
+}
+
 /// Convenience wrapper over std.fmt.parseUnsigned for T radix 10.
 pub fn parseUint(comptime T: type, str: []const u8) !T {
     return std.fmt.parseUnsigned(T, str, 10);
